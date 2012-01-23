@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Time tracker 3</title>
+    <link rel="stylesheet"
+          href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css"/>
+    <style type="text/css">
+      .workbook { padding-top: 10px; }
+      .timeline { margin-top: 10px; height: 28px; }
+      .timeline ol {
+        list-style: none;
+        height: 28px;
+        position: relative;
+        cursor: pointer;
+        background: #dda;
+      }
+      .timeline li {
+        background-image: -webkit-linear-gradient(top, #99f, #00f);
+        display: block;
+        position: absolute;
+        height: 28px;
+      }
+      .timeline input.name { width: 100%; }
+
+      .content { margin-top: 58px; }
+      header { padding-top: 28px; }
+    </style>
+    <script src="jquery-1.7.1.js"></script>
+    <script src="knockout-2.0.0.debug.js"></script>
+    <script src="app/timeline.js"></script>
+  </head>
+  <body>
+
+    <div class="topbar">
+      <div class="topbar-inner">
+        <div class="fill container">
+          <h1 class="brand">Time tracker three</h1>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <header>
+        <div class="container">
+          foo
+        </div>
+      </header>
+
+    <div class="workbook">
+      <div class="container">
+
+      <section class="timeline-header row">
+        <div class="span5">
+          <h2>
+            <abbr data-bind="text: date()"/>
+            <abbr data-bind="text: month()"/>
+            <abbr data-bind="text: year()"/>
+          </h2>
+        </div>
+        <div class="span11">
+        </div>
+      </section>
+      <section class="body" data-bind="foreach: timelines">
+        <div class="timeline row" data-bind="timeline: $data">
+          <div class="span5">
+            <input class="name" data-bind="value: name"></input>
+          </div>
+          <div class="span11">
+            <ol class="intervals" data-bind="foreach: ranges">
+              <li data-bind="style: { left: left() + 'px', width: width() + 'px'}">
+                <abbr data-bind="text: left() + ', ' + width()"></abbr>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </section>
+      <section class="timeline-footer">
+        <form data-bind="submit: addTimeline">
+          <input class="name span4"></input>
+          <input type="submit" class="btn primary"
+                 data-bind="click: addTimeline"></input>
+        </form>
+      </section>
+    </div>
+    </div>
+    </div>
+    <script type="text/javascript">
+      var workbook = new Workbook();
+      ko.applyBindings(workbook);
+    </script>
+  </body>
+</html>
