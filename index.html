@@ -44,6 +44,8 @@
         margin: 5px 0px 0px 5px;
         display: block;
       }
+      abbr.range.clippedLeft:before { content: '\2190'; }
+      abbr.range.clippedRight:after { content: '\2192'; }
 
       .timeline { margin-top: 10px; height: 28px; }
       ol.intervals, .ruler ol.ticks {
@@ -145,7 +147,9 @@
             <ol class="intervals" data-bind="foreach: ranges">
               <li data-bind="style: { left: left() + 'px',
                                       width: width() + 'px'}">
-                <abbr class="range" data-bind="style: { left: labelLeft() + 'px' },
+                <abbr class="range" data-bind="css: { clippedLeft: left() < 0,
+                                                      clippedRight: left() + width() > workbook.width() },
+                                               style: { left: labelLeft() + 'px'},
                                                text: duration()"></abbr>
               </li>
             </ol>
