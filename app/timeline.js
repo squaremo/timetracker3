@@ -115,8 +115,9 @@ function Workbook() {
   this.start = ko.observable(+new Date());
   // Number of milliseconds to a pixel
   this.grain = ko.observable(60 * 1000);
+  this.width = ko.observable(0);
   this.end = ko.computed(function() {
-    return self.start() + (640 * self.grain());
+    return self.start() + (self.width() * self.grain());
   }, self);
 
   this.dt = ko.computed(function() { return new Date(self.start()); });
@@ -124,10 +125,14 @@ function Workbook() {
   this.month = ko.computed(function() { return MONTHS[self.dt().getMonth()]; });
   this.year = ko.computed(function() { return self.dt().getFullYear(); });
 
-  this.date = ko.computed(function() {
-    var dt = new Date(self.start());
-    return dt.getDate() + ' ' + MONTHS[dt.getMonth()] + ' ' + dt.getFullYear();
-  });
+  this.lasso = ko.observable(null);
+  this.newLasso = function(start) {
+    self.lasso(new Range(start, start, self));
+    return self.lasso();
+  }
+  this.endLasso = function() {
+    this.lasso(null);
+  }
 
   this.addTimeline = function() {
     self.timelines.push(new Timeline(self));
@@ -143,6 +148,13 @@ function Workbook() {
 
 }
 
+var SECONDS_IN_HOUR = 60 * 60;
+var SECONDS_IN_DAY = 24 * SECONDS_IN_HOUR;
+
+function zeroise(minutes) {
+  return (minutes < 10) ? "0" + minutes : minutes;
+}
+
 function Range(start, end, workbook) {
   var self = this;
 
@@ -155,6 +167,23 @@ function Range(start, end, workbook) {
   this.width = ko.computed(function() {
     return workbook.timelineToScreen(self.end()) -
       workbook.timelineToScreen(self.start());
+  });
+  this.duration = ko.computed(function() {
+    var seconds = (self.end() - self.start()) / 1000;
+    if (seconds >= (2 * SECONDS_IN_DAY)) {
+      var days = Math.floor(seconds / SECONDS_IN_DAY);
+      var hours = Math.floor((seconds % SECONDS_IN_DAY) / SECONDS_IN_HOUR);
+      var minutes = Math.floor((seconds % SECONDS_IN_HOUR) / 60);
+      return days + "d " + hours + "h " + zeroise(minutes) + "m";
+    }
+    else if (seconds >= SECONDS_IN_HOUR) {
+      var hours = Math.floor(seconds / SECONDS_IN_HOUR);
+      var minutes = Math.floor((seconds % SECONDS_IN_HOUR) / 60);
+      return hours + "h " + zeroise(minutes) + "m";
+    }
+    else {
+      return zeroise(Math.floor(seconds / 60)) + "m";
+    }
   });
 }
 
@@ -214,17 +243,17 @@ ko.bindingHandlers.timeline = {
       }
 
       var origPos = eventPos(event);
-      var active = new Range(origPos, origPos, timeline.workbook);
 
       console.log({pageX: pageX, elemX: elemX, timeline: timeline, origPos: origPos});
 
-
-      timeline.activeInterval(active);
+      // Is this the best way to do this?
+      var active = workbookAcc().newLasso(origPos);
 
       $(this).bind({
         'mouseup': function(event) {
           console.log({active: active, start: active.start(), end: active.end()});
-          timeline.setActiveInterval();
+          timeline.setInterval(active.start(), active.end());
+          workbookAcc().endLasso();
           $(this).off('mouseup mousemove');
         },
         'mousemove': function(event) {
@@ -242,6 +271,13 @@ ko.bindingHandlers.timeline = {
     });
   }
 };
+
+ko.bindingHandlers.workbook = {
+  init: function(element, _valueAcc, _all, workbook) {
+    var width = parseInt($('.ruler', element).css('width'));
+    workbook.width(width);
+  }
+}
 
 $(document).load(function() {
 });

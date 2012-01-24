@@ -6,27 +6,50 @@
           href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css"/>
     <style type="text/css">
       .workbook { padding-top: 10px; }
+      .lasso-container { position: relative; height: 100%; }
+      .lasso {
+        border-style: dashed;
+        border-color: red;
+        border-width: 0 1px 0 1px;
+        position: absolute;
+        height: 28px;
+        display: block;
+        margin-left: -1px;
+        overflow: visible;
+      }
+
+      abbr.range {
+        font-size: medium;
+        margin: 5px 0px 0px 5px;
+        display: block;
+      }
+
       .timeline { margin-top: 10px; height: 28px; }
-      .timeline ol {
+      .timeline ol.intervals {
+        margin: 0;
         list-style: none;
         height: 28px;
         position: relative;
         cursor: pointer;
         background: #dda;
       }
-      .timeline li {
+      .timeline ol.intervals li {
         background-image: -webkit-linear-gradient(top, #99f, #00f);
         display: block;
         position: absolute;
         height: 28px;
+        color: white;
+        -webkit-border-radius: 4px;
+        overflow: visible;
       }
-      .timeline input.name { width: 100%; }
+
+      .timeline-footer { margin-top: 20px; }
 
       .content { margin-top: 58px; }
       header { padding-top: 28px; }
     </style>
     <script src="jquery-1.7.1.js"></script>
-    <script src="knockout-2.0.0.debug.js"></script>
+    <script src="knockout-2.0.0.js"></script>
     <script src="app/timeline.js"></script>
   </head>
   <body>
@@ -46,7 +69,7 @@
         </div>
       </header>
 
-    <div class="workbook">
+    <div class="workbook" data-bind="workbook: {}">
       <div class="container">
 
       <section class="timeline-header row">
@@ -57,18 +80,24 @@
             <abbr data-bind="text: year()"/>
           </h2>
         </div>
-        <div class="span11">
+        <div class="ruler span11">
+          <div class="lasso-container" data-bind="if: lasso()">
+            <span class="lasso" data-bind="style: {left: lasso().left() + 'px',
+                                                   width: lasso().width() + 'px'}">
+              <abbr class="range" data-bind="text: lasso().duration()"/>
+            </span>
+          </div>
         </div>
       </section>
       <section class="body" data-bind="foreach: timelines">
-        <div class="timeline row" data-bind="timeline: $data">
+        <div class="timeline row" data-bind="timeline: $parent">
           <div class="span5">
             <input class="name" data-bind="value: name"></input>
           </div>
           <div class="span11">
             <ol class="intervals" data-bind="foreach: ranges">
               <li data-bind="style: { left: left() + 'px', width: width() + 'px'}">
-                <abbr data-bind="text: left() + ', ' + width()"></abbr>
+                <abbr class="range" data-bind="text: duration()"></abbr>
               </li>
             </ol>
           </div>
