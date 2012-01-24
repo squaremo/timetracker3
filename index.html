@@ -6,7 +6,7 @@
           href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css"/>
     <style type="text/css">
       .workbook { padding-top: 10px; }
-      .lasso-container { position: relative; height: 100%; }
+      .lasso-container { position: relative; }
       .lasso {
         border-style: dashed;
         border-color: red;
@@ -18,6 +18,27 @@
         overflow: visible;
       }
 
+      .ruler {
+        background-image: -webkit-linear-gradient(top, #fff, #fff, #eee, #ccc);
+        -moz-user-select: none;
+        -khtml-user-select: none;
+        user-select: none;
+      }
+
+      .ruler ol li.tick {
+        display: block;
+        position: absolute;
+        height: 12px;
+        border-left: 1px solid #ccc;
+      }
+
+      .ruler ol li.tick.tall { height: 24px; border-color: black; }
+      .ruler ol li.tick span { display: block; }
+      .tick-minute { font-size: smaller; display: none !important; }
+      .tick-hour { font-size: medium; }
+      .tick-date { font-size: x-large; font-weight: bold; }
+      .tick-month { font-size: medium; font-weight: bold; }
+
       abbr.range {
         font-size: medium;
         margin: 5px 0px 0px 5px;
@@ -25,13 +46,19 @@
       }
 
       .timeline { margin-top: 10px; height: 28px; }
-      .timeline ol.intervals {
+      ol.intervals, .ruler ol.ticks {
         margin: 0;
         list-style: none;
         height: 28px;
         position: relative;
+        overflow: hidden;
+      }
+      .timeline ol.intervals {
         cursor: pointer;
         background: #dda;
+        -moz-user-select: none;
+        -khtml-user-select: none;
+        user-select: none;
       }
       .timeline ol.intervals li {
         background-image: -webkit-linear-gradient(top, #99f, #00f);
@@ -40,7 +67,9 @@
         height: 28px;
         color: white;
         -webkit-border-radius: 4px;
-        overflow: visible;
+      }
+      .timeline ol.intervals li abbr {
+        position: relative;
       }
 
       .timeline-footer { margin-top: 20px; }
@@ -65,7 +94,6 @@
     <div class="content">
       <header>
         <div class="container">
-          foo
         </div>
       </header>
 
@@ -73,20 +101,39 @@
       <div class="container">
 
       <section class="timeline-header row">
+
         <div class="span5">
           <h2>
-            <abbr data-bind="text: date()"/>
-            <abbr data-bind="text: month()"/>
-            <abbr data-bind="text: year()"/>
+            <abbr data-bind="text: date()">dd</abbr>
+            <abbr data-bind="text: month()">MM</abbr>
+            <abbr data-bind="text: year()">YYYY</abbr>
           </h2>
         </div>
+
         <div class="ruler span11">
+          <ol class="ticks" data-bind="foreach: ticks">
+            <li class="tick" data-bind="css: {'tall': $data.date },
+                                        style: { left: left + 'px' }">
+              <span data-bind="if: $data.date">
+                <abbr class="tick-date" data-bind="text: $data.date">dd</abbr>
+                <abbr class="tick-month" data-bind="text: $data.month">dd</abbr>
+              </span>
+              <span data-bind="if: $data.hour">
+                <abbr class="tick-hour" data-bind="text: $data.hour">HH</abbr>
+              </span>
+              <span data-bind="if: $data.minute">
+                <abbr class="tick-minute" data-bind="text: $data.minute">mm</abbr>
+              </span>
+            </li>
+          </ol>
+
           <div class="lasso-container" data-bind="if: lasso()">
             <span class="lasso" data-bind="style: {left: lasso().left() + 'px',
                                                    width: lasso().width() + 'px'}">
               <abbr class="range" data-bind="text: lasso().duration()"/>
             </span>
           </div>
+
         </div>
       </section>
       <section class="body" data-bind="foreach: timelines">
@@ -96,8 +143,10 @@
           </div>
           <div class="span11">
             <ol class="intervals" data-bind="foreach: ranges">
-              <li data-bind="style: { left: left() + 'px', width: width() + 'px'}">
-                <abbr class="range" data-bind="text: duration()"></abbr>
+              <li data-bind="style: { left: left() + 'px',
+                                      width: width() + 'px'}">
+                <abbr class="range" data-bind="style: { left: labelLeft() + 'px' },
+                                               text: duration()"></abbr>
               </li>
             </ol>
           </div>
@@ -105,9 +154,9 @@
       </section>
       <section class="timeline-footer">
         <form data-bind="submit: addTimeline">
-          <input class="name span4"></input>
-          <input type="submit" class="btn primary"
-                 data-bind="click: addTimeline"></input>
+          <input class="name span4"
+                 data-bind="value: timelineName"/>
+          <input type="submit" class="btn primary" value="Add"/>
         </form>
       </section>
     </div>

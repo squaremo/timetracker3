@@ -111,14 +111,15 @@ function Workbook() {
   var self = this;
 
   this.timelines = ko.observableArray();
+  this.timelineName = ko.observable('');
 
   this.start = ko.observable(+new Date());
   // Number of milliseconds to a pixel
   this.grain = ko.observable(60 * 1000);
+  // Number of milliseconds to a tick
+  this.tick = ko.observable(60 * 1000 * 15);
+
   this.width = ko.observable(0);
-  this.end = ko.computed(function() {
-    return self.start() + (self.width() * self.grain());
-  }, self);
 
   this.dt = ko.computed(function() { return new Date(self.start()); });
   this.date = ko.computed(function() { return self.dt().getDate(); });
@@ -134,8 +135,24 @@ function Workbook() {
     this.lasso(null);
   }
 
+  this.screenToTimelineDistance = function(dist) {
+    return self.grain() * dist;
+  };
+
+  this.clip = ko.computed(function() {
+    // we want a whole screenful each direction
+    var width = self.screenToTimelineDistance(self.width());
+    var start = self.start();
+    return {start: start - width, end: start + 2 * width};
+  });
+
+  this.end = ko.computed(function() {
+    return self.start() + self.screenToTimelineDistance(self.width());
+  });
+
   this.addTimeline = function() {
-    self.timelines.push(new Timeline(self));
+    self.timelines.push(new Timeline(self, self.timelineName()));
+    self.timelineName('');
   };
 
   this.timelineToScreen = function(start) {
@@ -143,9 +160,38 @@ function Workbook() {
   };
 
   this.screenToTimeline = function(left) {
-    return self.start() + (self.grain() * left);
+    return self.start() + self.screenToTimelineDistance(left);
   };
 
+  this.ticks = ko.computed(function() {
+    var ts = [];
+    var end = self.end();
+    var tick = self.tick();
+    var start = self.start();
+    var oldDate = new Date(start);
+    var num = 0;
+    var date, hour, minute;
+    while (start < end) {
+      start += tick;
+      t = { left: self.timelineToScreen(start) };
+      var newDate = new Date(start);
+      if ((date = newDate.getDate()) != oldDate.getDate()) {
+        t.date = date;
+        t.month = MONTHS[newDate.getMonth()];
+      }
+      else if ((hour = newDate.getHours()) != oldDate.getHours()) {
+        t.hour = zeroise(hour);
+        t.minute = newDate.getMinutes();
+      }
+      else if ((minute = newDate.getMinutes()) != oldDate.getMinutes()) {
+        t.minute = minute;
+      }
+      oldDate = newDate;
+      ts.push(t);
+      num++;
+    }
+    return ts;
+  });
 }
 
 var SECONDS_IN_HOUR = 60 * 60;
@@ -168,6 +214,20 @@ function Range(start, end, workbook) {
     return workbook.timelineToScreen(self.end()) -
       workbook.timelineToScreen(self.start());
   });
+  this.labelLeft = ko.computed(function() {
+    if (self.left() < 0) {
+      if (self.left() + self.width() < 0) {
+        return 0;
+      }
+      else {
+        return -self.left();
+      }
+    }
+    else {
+      return 0;
+    }
+  });
+
   this.duration = ko.computed(function() {
     var seconds = (self.end() - self.start()) / 1000;
     if (seconds >= (2 * SECONDS_IN_DAY)) {
@@ -187,19 +247,20 @@ function Range(start, end, workbook) {
   });
 }
 
-function Timeline(workbook) {
+function Timeline(workbook, name) {
   var self = this;
 
   this.workbook = workbook;
 
-  this.name = ko.observable('idle');
+  this.name = ko.observable(name);
   this.intervals = ko.observable(new Intervals());
   this.activeInterval = ko.observable(null);
 
   this.ranges = ko.computed(function() {
     var ranges = [];
+    var clip = self.workbook.clip();
     self.intervals()
-      .clip(self.workbook.start(), self.workbook.end())
+      .clip(clip.start, clip.end)
       .ranges()
       .forEach(function(r) {
         ranges.push(new Range(r.start, r.end, workbook));
@@ -243,20 +304,15 @@ ko.bindingHandlers.timeline = {
       }
 
       var origPos = eventPos(event);
-
-      console.log({pageX: pageX, elemX: elemX, timeline: timeline, origPos: origPos});
-
-      // Is this the best way to do this?
       var active = workbookAcc().newLasso(origPos);
 
-      $(this).bind({
-        'mouseup': function(event) {
-          console.log({active: active, start: active.start(), end: active.end()});
+      $(document).bind({
+        'mouseup.interval': function(event) {
           timeline.setInterval(active.start(), active.end());
           workbookAcc().endLasso();
-          $(this).off('mouseup mousemove');
+          $(document).off('mouseup.interval mousemove.interval');
         },
-        'mousemove': function(event) {
+        'mousemove.interval': function(event) {
           var pos = eventPos(event);
           if (pos < origPos) {
             active.start(pos);
@@ -274,8 +330,22 @@ ko.bindingHandlers.timeline = {
 
 ko.bindingHandlers.workbook = {
   init: function(element, _valueAcc, _all, workbook) {
-    var width = parseInt($('.ruler', element).css('width'));
+    var ruler = $('.ruler', element);
+    var width = parseInt(ruler.css('width'));
     workbook.width(width);
+    ruler.on('mousedown', function(event) {
+      var origX = event.pageX;
+      var origStart = workbook.start();
+      $(document).on({
+        'mousemove.ruler': function(event) {
+          var moved = workbook.screenToTimelineDistance(event.pageX - origX);
+          workbook.start(origStart - moved);
+        },
+        'mouseup.ruler': function(event) {
+          $(document).off('mousemove.ruler mouseup.ruler');
+        }
+      });
+    });
   }
 }
 
